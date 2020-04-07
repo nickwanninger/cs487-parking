@@ -31,32 +31,29 @@ pub fn get_client() -> Arc<Client> {
 pub fn drop_client(c: Arc<Client>) {
     let mut pool = CONN_POOL.lock().unwrap();
     pool.push_back(c);
-}
 
-/// Wrapper around postgres's query function
-pub fn query<T: ?Sized>(
-    query: &T,
-    params: &[&(dyn postgres::types::ToSql + Sync)]
-) -> Result<Vec<postgres::Row>>
-where T: postgres::ToStatement
-{
-    let mut c = get_client();
-    let val = Arc::get_mut(&mut c)
-            .expect("uh...")
-            .query(query, params);
-    drop_client(c);
-    return val;
+    println!("dropped client: {} connected", pool.len());
 }
 
 
 
-
+/// An owned reference to a client, returning the client to the pool
+/// on dropping
+///
+/// Example:
+/// ```
+/// let mut c = db::Connection::new();
+/// c.query(...)
+/// // drops!
+/// ```
 pub struct Connection {
     c: Arc<Client>
 }
 
 
 impl Connection {
+    /// Construct a new connection instance, grabbing a
+    /// client using RAII.
     pub fn new() -> Connection {
         Connection {
             c: get_client()
@@ -64,11 +61,8 @@ impl Connection {
     }
 }
 
-
-
 impl Drop for Connection {
     fn drop(&mut self) {
-        println!("drop!");
         drop_client(self.c.clone());
     }
 }

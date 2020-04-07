@@ -6,6 +6,7 @@ pub mod db;
 
 fn main() {
     let mut c = db::Connection::new();
+
     let rows = c.query(
         "select table_name from information_schema.tables;",
         &[]).expect("failed");
