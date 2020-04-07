@@ -11,7 +11,7 @@ pub type Result<T> = std::result::Result<T, postgres::error::Error>;
 
 
 fn connect() -> Arc<Client> {
-    Arc::new(Client::connect("host=localhost user=postgres", NoTls)
+    Arc::new(Client::connect("host=localhost user=postgres dbname=parking", NoTls)
                      .expect("Couldn't connect to the database"))
 }
 
@@ -35,6 +35,15 @@ pub fn drop_client(c: Arc<Client>) {
     println!("dropped client: {} connected", pool.len());
 }
 
+
+macro_rules! run_query {
+    ( $q:expr ) => {
+        db::Connection::new().query($q, &[])
+    };
+    ( $q:expr, $( $y:expr );* ) => {
+        db::Connection::new().query($q, &[$( &$y ),*])
+    };
+}
 
 
 /// An owned reference to a client, returning the client to the pool
