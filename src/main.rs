@@ -3,20 +3,18 @@
 extern crate lazy_static;
 
 #[macro_use]
-pub mod db;
-
+mod db;
+pub mod user;
 
 
 fn main() {
 
-    run_query!("INSERT INTO Foo (value)
-              VALUES ($1);", 3).expect("failed to query");
+    let u = user::User::create(
+                    String::from("my@email"),
+                    String::from("pw"),
+                    user::UserType::Owner
+                ).expect("failed to create user");
 
-    let rows = run_query!("select * from Foo;").expect("failed");
+    println!("user: {:#?}", u);
 
-    for row in rows {
-        let id: i32 = row.get("id");
-        let value: i32 = row.get("value");
-        println!("id: {}, value: {}", id, value);
-    }
 }

@@ -35,12 +35,12 @@ pub fn drop_client(c: Arc<Client>) {
     println!("dropped client: {} connected", pool.len());
 }
 
-
+#[macro_export]
 macro_rules! run_query {
     ( $q:expr ) => {
         db::Connection::new().query($q, &[])
     };
-    ( $q:expr, $( $y:expr );* ) => {
+    ( $q:expr, $( $y:expr ),* ) => {
         db::Connection::new().query($q, &[$( &$y ),*])
     };
 }
