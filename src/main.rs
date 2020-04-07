@@ -11,10 +11,13 @@ fn main() {
 
     let u = user::User::create(
                     String::from("my@email"),
-                    String::from("pw"),
+                    user::hash_password(String::from("my_password")),
                     user::UserType::Owner
                 ).expect("failed to create user");
 
     println!("user: {:#?}", u);
+    loop {
+        println!("hash: {:#?}", user::hash_password(String::from("yeet")));
+    }
 
 }

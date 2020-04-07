@@ -1,5 +1,9 @@
 use crate::db;
 
+extern crate bcrypt;
+
+
+
 #[derive(Debug)]
 pub enum UserType {
     Driver,
@@ -59,4 +63,13 @@ impl User {
     pub fn lookup(_id: u64) -> Result<User, ()> {
         unimplemented!()
     }
+
+    pub fn verify_password(&self, password: String) -> bool {
+        bcrypt::verify(password, &self.pass_hash).expect("failed to verify")
+    }
+}
+
+
+pub fn hash_password(pw: String) -> String {
+    bcrypt::hash(pw, 6).expect("failed to hash")
 }
