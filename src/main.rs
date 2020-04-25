@@ -41,13 +41,13 @@ struct LoginInput {
 fn post_login(input: Form<LoginInput>, mut cookies: Cookies) -> Redirect {
     match user::User::login(&input.email, &input.password) {
         Ok(u) => {
-            let cookie = Cookie::build("user_id", format!("{}", u.id))
+            let cookie = Cookie::build("user_id", format!("{}", u.user_id))
                                  .path("/")
                                  .finish();
 
             cookies.add(cookie);
 
-            Redirect::to(format!("/?id={}", u.id))
+            Redirect::to(format!("/?id={}", u.user_id))
         },
         _ => Redirect::to(format!("/?failed")),
     }
@@ -71,7 +71,7 @@ fn post_signup(input: Form<SignupInput>, mut cookies: Cookies) -> Redirect {
     };
     match user::User::signup(&input.email, &input.password, t) {
         Ok(u) => {
-            let cookie = Cookie::build("user_id", format!("{}", u.id))
+            let cookie = Cookie::build("user_id", format!("{}", u.user_id))
                                  .path("/")
                                  .finish();
             cookies.add(cookie);
@@ -83,13 +83,25 @@ fn post_signup(input: Form<SignupInput>, mut cookies: Cookies) -> Redirect {
 }
 
 
-fn render_parker_home(user: &user::User) -> Template {
-    Template::render("parker", user)
+
+
+#[derive(FromForm, Serialize, Deserialize)]
+struct HomepageContext {
+    uid: i32,
+    email: String,
+    owner: bool,
 }
 
-
-fn render_owner_home(user: &user::User) -> Template {
-    Template::render("owner", user)
+fn render_homepage(user: user::User) -> Template {
+    let ctx = HomepageContext {
+        uid: user.user_id as i32,
+        email: user.email,
+        owner: match user.acct_type {
+            user::UserType::Owner => true,
+            _ => false
+        }
+    };
+    Template::render("home", ctx)
 }
 
 
@@ -98,12 +110,7 @@ fn render_owner_home(user: &user::User) -> Template {
 fn index(user: Option<user::User>) -> Template {
     match user {
         None => just_render("index"),
-        Some(user) => {
-            match user.acct_type {
-                user::UserType::Parker => render_parker_home(&user),
-                user::UserType::Owner => render_owner_home(&user)
-            }
-        }
+        Some(user) => render_homepage(user)
     }
 }
 

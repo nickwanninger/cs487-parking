@@ -27,7 +27,7 @@ impl UserType {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    pub id: u64,
+    pub user_id: i32,
     pub email: String,
     pub pass_hash: String,
     pub acct_type: UserType,
@@ -36,9 +36,9 @@ pub struct User {
 impl User {
     fn parse(row: &postgres::Row) -> User {
         let t: i32 = row.get("acct_type");
-        let id: i32 = row.get("id");
+        let id: i32 = row.get("user_id");
         User {
-            id: id as u64,
+            user_id: id,
             email: row.get("email"),
             pass_hash: row.get("pass_hash"),
             acct_type: match t {
