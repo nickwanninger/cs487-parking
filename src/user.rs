@@ -1,18 +1,33 @@
 use crate::db;
 
 extern crate bcrypt;
+use std::result::{Result};
+use rocket::Request;
+use rocket::request::{self, FromRequest};
+use crate::rocket::outcome::IntoOutcome;
+use serde::{Serialize, Deserialize};
 
+use postgres;
 
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum UserType {
-    Driver,
+    Parker,
     Owner,
 }
 
-#[derive(Debug)]
+
+impl UserType {
+    pub fn to_db(&self) -> i32 {
+        match self {
+            UserType::Parker => 0,
+            UserType::Owner => 1
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    id: u64,
+    pub id: u64,
     pub email: String,
     pub pass_hash: String,
     pub acct_type: UserType,
@@ -27,7 +42,7 @@ impl User {
             email: row.get("email"),
             pass_hash: row.get("pass_hash"),
             acct_type: match t {
-                0 => UserType::Driver,
+                0 => UserType::Parker,
                 1 => UserType::Owner,
                 _ => panic!("invalid account type")
             },
@@ -36,10 +51,7 @@ impl User {
 
     /// Create a user in the database and return it
     pub fn create(email: String, phash: String, acct_type: UserType) -> db::Result<User> {
-        let atype: i32 = match acct_type {
-            UserType::Driver => 0,
-            UserType::Owner => 1
-        };
+        let atype = acct_type.to_db();
 
         let res = run_query!("INSERT INTO users(email, pass_hash, acct_type)
                               VALUES
@@ -48,6 +60,21 @@ impl User {
                 email, phash, atype)?;
 
         Ok(User::parse(&res[0]))
+    }
+
+
+    /// Lookup and return the user id of a user if login was successfull
+    pub fn login(email: &String, password: &String) -> Result<User, ()> {
+        let res = run_query!("select * from users where email = $1;", email);
+
+        if let Ok(res) = res {
+            let u = User::parse(&res[0]);
+            if u.verify_password(password) {
+                return Ok(u);
+            }
+        }
+
+        Err(())
     }
 
 
@@ -60,16 +87,35 @@ impl User {
 
 
     /// Lookup a user by id in the database
-    pub fn lookup(_id: u64) -> Result<User, ()> {
-        unimplemented!()
+    pub fn lookup(id: i32) -> Option<User> {
+        let res = run_query!("select * from users where id = $1;", id);
+
+        if let Ok(res) = res {
+            return Some(User::parse(&res[0]));
+        }
+
+        None
     }
 
-    pub fn verify_password(&self, password: String) -> bool {
+    pub fn verify_password(&self, password: &String) -> bool {
         bcrypt::verify(password, &self.pass_hash).expect("failed to verify")
     }
 }
 
 
-pub fn hash_password(pw: String) -> String {
+impl<'a, 'r> FromRequest<'a, 'r> for User {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<User, ()> {
+        request.cookies()
+            .get("user_id")
+            .and_then(|cookie| cookie.value().parse().ok())
+            .map(|id| User::lookup(id).unwrap())
+            .or_forward(())
+    }
+}
+
+
+pub fn hash_password(pw: &String) -> String {
     bcrypt::hash(pw, 6).expect("failed to hash")
 }
