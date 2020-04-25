@@ -66,7 +66,6 @@ impl User {
     /// Lookup and return the user id of a user if login was successfull
     pub fn login(email: &String, password: &String) -> Result<User, ()> {
         let res = run_query!("select * from users where email = $1;", email);
-
         if let Ok(res) = res {
             let u = User::parse(&res[0]);
             if u.verify_password(password) {
@@ -75,6 +74,25 @@ impl User {
         }
 
         Err(())
+    }
+
+
+    pub fn signup(email: &String, password: &String, t: UserType) -> Result<User, ()> {
+
+        let password = hash_password(&password);
+        let res = run_query!("select * from users where email = $1;", email);
+
+        if let Ok(res) = res {
+            if res.len() != 0 {
+                println!("user exists");
+                return Err(());
+            }
+        }
+
+        match User::create(email.to_string(), password, t) {
+            Ok(u) => Ok(u),
+            Err(_) => Err(())
+        }
     }
 
 

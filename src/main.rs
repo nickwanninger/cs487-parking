@@ -34,7 +34,6 @@ fn get_login() -> Template {
 
 #[derive(FromForm, Serialize, Deserialize)]
 struct LoginInput {
-    // The raw, undecoded value. You _probably_ want `String` instead.
     email: String,
     password: String,
 }
@@ -50,10 +49,38 @@ fn post_login(input: Form<LoginInput>, mut cookies: Cookies) -> Redirect {
 
             Redirect::to(format!("/?id={}", u.id))
         },
-        _ => Redirect::to(format!("/?no_user")),
+        _ => Redirect::to(format!("/?failed")),
     }
 }
 
+
+#[derive(FromForm, Serialize, Deserialize)]
+struct SignupInput {
+    email: String,
+    password: String,
+    atype: String,
+}
+
+#[post("/signup", data = "<input>")]
+fn post_signup(input: Form<SignupInput>, mut cookies: Cookies) -> Redirect {
+
+    let t = match input.atype.as_str() {
+        "parker" => user::UserType::Parker,
+        "owner" => user::UserType::Owner,
+        _ => return Redirect::to("/?what")
+    };
+    match user::User::signup(&input.email, &input.password, t) {
+        Ok(u) => {
+            let cookie = Cookie::build("user_id", format!("{}", u.id))
+                                 .path("/")
+                                 .finish();
+            cookies.add(cookie);
+
+            Redirect::to("/")
+        },
+        _ => Redirect::to(format!("/?user_exists")),
+    }
+}
 
 
 fn render_parker_home(user: &user::User) -> Template {
@@ -98,6 +125,6 @@ fn main() {
     rocket::ignite()
         .mount("/static", serve::StaticFiles::from("static"))
         .attach(Template::fairing())
-        .mount("/", routes![index, get_login, post_login, me_json, logout]).launch();
+        .mount("/", routes![index, get_login, post_login, me_json, logout, post_signup]).launch();
 
 }
