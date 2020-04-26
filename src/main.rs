@@ -6,6 +6,8 @@ extern crate lazy_static;
 #[macro_use]
 mod db;
 pub mod user;
+pub mod vehicle;
+pub mod lot;
 
 
 #[macro_use] extern crate rocket;
@@ -85,21 +87,27 @@ fn post_signup(input: Form<SignupInput>, mut cookies: Cookies) -> Redirect {
 
 
 
-#[derive(FromForm, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct HomepageContext {
     uid: i32,
     email: String,
     owner: bool,
+    vehicles: Vec<vehicle::Vehicle>,
+    lots: Vec<lot::Lot>
 }
 
 fn render_homepage(user: user::User) -> Template {
+    let vs = vehicle::Vehicle::for_user(&user);
+    let ls = lot::Lot::for_user(&user);
     let ctx = HomepageContext {
         uid: user.user_id as i32,
         email: user.email,
         owner: match user.acct_type {
             user::UserType::Owner => true,
             _ => false
-        }
+        },
+        vehicles: vs,
+        lots: ls
     };
     Template::render("home", ctx)
 }
@@ -127,11 +135,70 @@ fn me_json(user: user::User) -> String {
     serde_json::to_string(&user).unwrap()
 }
 
+#[derive(Debug, FromForm, Serialize, Deserialize)]
+struct VehiclePostForm {
+    license: String,
+    name: String,
+}
+
+#[post("/vehicle", data="<input>")]
+fn post_vehicle(user: user::User, input: Form<VehiclePostForm>) -> Redirect {
+    // assume it succeeds
+    vehicle::Vehicle::create(user, input.license.to_string(), input.name.to_string()).unwrap();
+
+    Redirect::to("/?added")
+}
+
+
+
+#[post("/vehicle/delete/<id>")]
+fn delete_vehicle(_user: user::User, id: i32) -> Redirect {
+    vehicle::Vehicle::delete(id);
+
+    Redirect::to("/")
+}
+
+
+
+#[derive(Debug, FromForm, Serialize, Deserialize)]
+struct LotPostForm {
+    name: String,
+    address: String,
+    price: i32,
+}
+
+#[post("/lot", data="<input>")]
+fn post_lot(user: user::User, input: Form<LotPostForm>) -> Redirect {
+    // assume it succeeds
+    lot::Lot::create(user, &input.name, &input.address, input.price).unwrap();
+
+    Redirect::to("/?created_lot")
+}
+
+
+
+
+#[post("/lot/delete/<id>")]
+fn delete_lot(_user: user::User, id: i32) -> Redirect {
+    lot::Lot::delete(id);
+
+    Redirect::to("/")
+}
 
 fn main() {
     rocket::ignite()
         .mount("/static", serve::StaticFiles::from("static"))
         .attach(Template::fairing())
-        .mount("/", routes![index, get_login, post_login, me_json, logout, post_signup]).launch();
+        .mount("/", routes![index,
+            get_login,
+            post_login,
+            me_json,
+            logout,
+            post_signup,
+            post_vehicle,
+            delete_vehicle,
+            post_lot,
+            delete_lot,
+        ]).launch();
 
 }

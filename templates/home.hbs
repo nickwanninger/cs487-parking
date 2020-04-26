@@ -10,12 +10,19 @@
 
 	</head>
 
-	<body class="bg-light">
+
+	<style>
+		.card {
+			margin-bottom: 20px;
+		}
+	</style>
+
+	<body class="bg-dark">
 
 
 
     <div class="container">
-			<nav class="navbar navbar-expand-lg navbar-light bg-light">
+			<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 				<a class="navbar-brand" href="#">
 					{{#if owner}}
 						Parking App - Owner
@@ -36,6 +43,132 @@
 					</ul>
 				</div>
 			</nav>
+
+
+
+			{{#if owner}}
+
+
+
+
+
+
+			<div class="card">
+				<div class="card-body">
+					<h2>Your Parking Lots</h2>
+
+					<table class="table">
+						<thead>
+								<tr>
+									<th scope="col">Lot Name</th>
+									<th scope="col">Address</th>
+									<th scope="col">Price</th>
+									<th scope="col">Open Spaces</th>
+									<th scope="col">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+
+								{{#each lots}}
+									<tr>
+										<td>{{this.name}}</td>
+										<td>{{this.address}}</td>
+										<td>${{this.price}}</td>
+										<td>{{this.spaces_open}}/25</td>
+										<td>
+											<form style="margin: 0px;" action="/lot/delete/{{this.lot_id}}" method="POST">
+            						<button type="submit" class="btn btn-danger">Delete</button>
+											</form>
+										</td>
+									</tr>
+								{{/each}}
+
+
+								<form class="card p-2" action="/lot" method="POST">
+									<tr>
+										<td>
+          						<input type="text" class="form-control" placeholder="Name" name="name" required>
+										</td>
+
+										<td>
+          						<input type="text" class="form-control" placeholder="Address" name="address" required>
+										</td>
+
+										<td>
+          						<input type="number" class="form-control" placeholder="$/hour" name="price" required>
+										</td>
+
+										<td>
+											25 (fixed)
+										</td>
+
+
+										<td>
+											<button type="submit" class="btn btn-primary">Create</button>
+										</td>
+									</tr>
+      					</form>
+							</tbody>
+						</table>
+				</div>
+			</div>
+
+
+
+
+
+			{{else}}
+
+			<div class="card">
+				<div class="card-body">
+					<h2>Your Vehicles</h2>
+
+					<table class="table">
+						<thead>
+								<tr>
+									<th scope="col">License Plate</th>
+									<th scope="col">Nickname</th>
+									<th scope="col">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+
+								{{#each vehicles}}
+									<tr>
+										<td>{{this.license_plate}}</td>
+										<td>{{this.name}}</td>
+										<td>
+
+											<form style="margin: 0px;" action="/vehicle/delete/{{this.vehicle_id}}" method="POST">
+            						<button type="submit" class="btn btn-danger">Delete</button>
+											</form>
+										</td>
+									</tr>
+								{{/each}}
+
+
+								<form class="card p-2" action="/vehicle" method="POST">
+									<tr>
+										<td>
+          						<input type="text" class="form-control" placeholder="License Plate" name="license" required>
+										</td>
+										<td>
+											<input type="text" class="form-control" placeholder="Nickname" name="name" required>
+										</td>
+										<td>
+											<button type="submit" class="btn btn-primary">Create</button>
+										</td>
+									</tr>
+      					</form>
+							</tbody>
+						</table>
+				</div>
+			</div>
+
+
+
+
+			{{/if}}
 
 
 		</div>

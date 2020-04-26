@@ -67,9 +67,11 @@ impl User {
     pub fn login(email: &String, password: &String) -> Result<User, ()> {
         let res = run_query!("select * from users where email = $1;", email);
         if let Ok(res) = res {
-            let u = User::parse(&res[0]);
-            if u.verify_password(password) {
-                return Ok(u);
+            if res.len() == 1 {
+                let u = User::parse(&res[0]);
+                if u.verify_password(password) {
+                    return Ok(u);
+                }
             }
         }
 
@@ -106,7 +108,7 @@ impl User {
 
     /// Lookup a user by id in the database
     pub fn lookup(id: i32) -> Option<User> {
-        let res = run_query!("select * from users where id = $1;", id);
+        let res = run_query!("select * from users where user_id = $1;", id);
 
         if let Ok(res) = res {
             return Some(User::parse(&res[0]));
@@ -127,8 +129,10 @@ impl<'a, 'r> FromRequest<'a, 'r> for User {
     fn from_request(request: &'a Request<'r>) -> request::Outcome<User, ()> {
         request.cookies()
             .get("user_id")
-            .and_then(|cookie| cookie.value().parse().ok())
-            .map(|id| User::lookup(id).unwrap())
+            .and_then(|cookie| {
+                let id: i32 = cookie.value().parse().ok()?;
+                User::lookup(id)
+            })
             .or_forward(())
     }
 }
