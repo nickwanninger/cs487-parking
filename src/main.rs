@@ -3,7 +3,6 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate chrono;
-extern crate postgres_types;
 #[macro_use] extern crate rocket;
 
 #[macro_use]

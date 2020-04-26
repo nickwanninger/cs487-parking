@@ -3,6 +3,7 @@ use crate::user;
 use crate::vehicle;
 
 use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 
 #[derive(Serialize, Deserialize)]
 pub struct Lot {
@@ -68,6 +69,7 @@ impl Lot {
 }
 
 
+/// Represents a reservation event
 #[derive(Serialize, Deserialize)]
 pub struct Reservation {
     pub id: i32,
@@ -76,6 +78,8 @@ pub struct Reservation {
     pub start_time: chrono::DateTime<chrono::Utc>,
     pub end_time: chrono::DateTime<chrono::Utc>,
     pub cost: i32, // in dollars
+    pub hours: f32, // calculated at ::parse()
+    pub human_time: String,
 }
 
 impl Reservation {
@@ -94,21 +98,22 @@ impl Reservation {
             &run_query!("SELECT * from lots where lot_id = $1;",
                        lid).expect("huh.")[0]);
 
-
-        let start_time: chrono::DateTime<chrono::Utc> = row.get("start_time");
-        let end_time: chrono::DateTime<chrono::Utc> = row.get("end_time");
+        let start_time: DateTime<Utc> = row.get("start_time");
+        let end_time: DateTime<Utc> = row.get("end_time");
         let seconds = end_time.timestamp() - start_time.timestamp();
         let hours: f32 = seconds as f32 / 3600.0;
-        let mut cost = (hours * l.price as f32) as i32;
+        let mut cost = (hours.ceil() * l.price as f32) as i32;
         if cost == 0 {
             cost = l.price;
         }
 
+        let human_time = start_time.format("%a %b %e, %Y - %H:%M %P").to_string();
         Reservation {
             id: row.get("reservation_id"),
             vehicle: v,
             lot: l,
-            start_time, end_time, cost
+            start_time, end_time, cost, hours,
+            human_time,
         }
     }
 
@@ -116,8 +121,8 @@ impl Reservation {
     pub fn create(
         vehicle: &vehicle::Vehicle,
         lot: &Lot,
-        start: chrono::DateTime<chrono::Utc>,
-        end: chrono::DateTime<chrono::Utc>,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
     ) -> db::Result<Reservation> {
         let res = run_query!("INSERT INTO reservations
                               (vehicle_id, lot_id, start_time, end_time)
@@ -154,3 +159,46 @@ impl Reservation {
         return v;
     }
 }
+
+
+
+
+
+
+/*
+
+use bytes::BytesMut;
+use postgres::{FromSql, IsNull, ToSql, Type};
+use std::error::Error;
+
+
+impl<'a> FromSql<'a> for DateTime<Utc> {
+    fn from_sql(type_: &Type, raw: &[u8]) -> Result<DateTime<Utc>, Box<dyn Error + Sync + Send>> {
+        let naive = NaiveDateTime::from_sql(type_, raw)?;
+        Ok(DateTime::from_utc(naive, Utc))
+    }
+
+    fn accepts(ty: &postgres::Type) -> bool {
+        match *ty {
+            $($crate::Type::TIMESTAMPTZ)|+ => true,
+            _ => false
+        }
+    }
+
+    accepts!(TIMESTAMPTZ);
+}
+
+impl ToSql for DateTime<Utc> {
+    fn to_sql(
+        &self,
+        type_: &Type,
+        w: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        self.naive_utc().to_sql(type_, w)
+    }
+
+    accepts!(TIMESTAMPTZ);
+    to_sql_checked!();
+}
+
+*/

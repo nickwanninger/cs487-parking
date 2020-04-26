@@ -181,18 +181,26 @@
 									<th scope="col">Vehicle</th>
 									<th scope="col">Parking Lot</th>
 									<th scope="col">Start Time</th>
-									<th scope="col">End Time</th>
+									<th scope="col">Duration</th>
 									<th scope="col">Cost</th>
 								</tr>
 							</thead>
 							<tbody>
 								{{#each reservations}}
-									<td>{{this.vehicle.license_plate}} ({{this.vehicle.name}})</td>
-									<td>{{this.lot.name}} ({{this.lot.address}})</td>
-									<td>{{this.start_time}}</td>
-									<td>{{this.end_time}}</td>
-									<td>${{this.cost}}</td>
+									<tr>
+										<td>{{this.vehicle.license_plate}} ({{this.vehicle.name}})</td>
+										<td>{{this.lot.name}} ({{this.lot.address}})</td>
+										<td>{{this.human_time}}</td>
+										<td>{{this.hours}} hours</td>
+										<td>${{this.cost}} (${{this.lot.price}}/hr)</td>
+									</tr>
 								{{/each}}
+
+								{{#if owner}}
+									you are an owner
+								{{else}}
+									you aren't an owner
+								{{/if}}
 							</tbody>
 						</thead>
 					</table>
