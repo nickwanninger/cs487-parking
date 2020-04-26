@@ -31,8 +31,6 @@ pub fn get_client() -> Arc<Client> {
 pub fn drop_client(c: Arc<Client>) {
     let mut pool = CONN_POOL.lock().unwrap();
     pool.push_back(c);
-
-    println!("dropped client: {} connected", pool.len());
 }
 
 #[macro_export]

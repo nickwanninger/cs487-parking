@@ -52,7 +52,11 @@ impl Vehicle {
 
 
     pub fn delete(id: i32) {
-        run_query!("DELETE FROM VEHICLES WHERE vehicle_id = $1;", id).expect("failed to delete vehicle");
+        // delete the reservations for the specific vehicle
+        run_query!("DELETE FROM reservations WHERE vehicle_id = $1;", id).expect("failed to delete reservations");
+
+        // delete the vehicle
+        run_query!("DELETE FROM vehicles WHERE vehicle_id = $1;", id).expect("failed to delete vehicle");
 
         // TODO: update reservations and parking lot statuses
     }

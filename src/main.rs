@@ -2,6 +2,9 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use]
 extern crate lazy_static;
+extern crate chrono;
+extern crate postgres_types;
+#[macro_use] extern crate rocket;
 
 #[macro_use]
 mod db;
@@ -10,7 +13,6 @@ pub mod vehicle;
 pub mod lot;
 
 
-#[macro_use] extern crate rocket;
 
 use rocket_contrib::serve;
 use rocket_contrib::templates::Template;
@@ -93,12 +95,14 @@ struct HomepageContext {
     email: String,
     owner: bool,
     vehicles: Vec<vehicle::Vehicle>,
-    lots: Vec<lot::Lot>
+    lots: Vec<lot::Lot>,
+    reservations: Vec<lot::Reservation>
 }
 
 fn render_homepage(user: user::User) -> Template {
     let vs = vehicle::Vehicle::for_user(&user);
     let ls = lot::Lot::for_user(&user);
+    let rs = lot::Reservation::for_user(&user);
     let ctx = HomepageContext {
         uid: user.user_id as i32,
         email: user.email,
@@ -107,7 +111,8 @@ fn render_homepage(user: user::User) -> Template {
             _ => false
         },
         vehicles: vs,
-        lots: ls
+        lots: ls,
+        reservations: rs,
     };
     Template::render("home", ctx)
 }

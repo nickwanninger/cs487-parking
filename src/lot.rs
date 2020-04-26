@@ -1,8 +1,8 @@
 use crate::db;
 use crate::user;
+use crate::vehicle;
 
 use serde::{Serialize, Deserialize};
-
 
 #[derive(Serialize, Deserialize)]
 pub struct Lot {
@@ -64,5 +64,93 @@ impl Lot {
         run_query!("DELETE FROM lots WHERE lot_id = $1;", id).expect("Failed to delete!");
 
         // TODO: delete reservations
+    }
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct Reservation {
+    pub id: i32,
+    pub vehicle: vehicle::Vehicle,
+    pub lot: Lot,
+    pub start_time: chrono::DateTime<chrono::Utc>,
+    pub end_time: chrono::DateTime<chrono::Utc>,
+    pub cost: i32, // in dollars
+}
+
+impl Reservation {
+    /// parse a reservation from a database row
+    pub fn parse(row: &postgres::Row) -> Reservation {
+
+        let vid: i32 = row.get("vehicle_id");
+        let lid: i32 = row.get("lot_id");
+
+        let v = vehicle::Vehicle::parse(
+            &run_query!("SELECT * from vehicles where vehicle_id = $1;",
+                       vid).expect("huh.")[0]);
+
+
+        let l = Lot::parse(
+            &run_query!("SELECT * from lots where lot_id = $1;",
+                       lid).expect("huh.")[0]);
+
+
+        let start_time: chrono::DateTime<chrono::Utc> = row.get("start_time");
+        let end_time: chrono::DateTime<chrono::Utc> = row.get("end_time");
+        let seconds = end_time.timestamp() - start_time.timestamp();
+        let hours: f32 = seconds as f32 / 3600.0;
+        let mut cost = (hours * l.price as f32) as i32;
+        if cost == 0 {
+            cost = l.price;
+        }
+
+        Reservation {
+            id: row.get("reservation_id"),
+            vehicle: v,
+            lot: l,
+            start_time, end_time, cost
+        }
+    }
+
+    /// Add a reservation to the DB and return it
+    pub fn create(
+        vehicle: &vehicle::Vehicle,
+        lot: &Lot,
+        start: chrono::DateTime<chrono::Utc>,
+        end: chrono::DateTime<chrono::Utc>,
+    ) -> db::Result<Reservation> {
+        let res = run_query!("INSERT INTO reservations
+                              (vehicle_id, lot_id, start_time, end_time)
+                              VALUES ($1, $2, $3, $4)
+                              RETURNING *;",
+                vehicle.vehicle_id, lot.lot_id, start, end)?;
+
+
+        Ok(Reservation::parse(&res[0]))
+    }
+
+
+    pub fn for_user(user: &user::User) -> Vec<Reservation> {
+        let res = match user.acct_type {
+            user::UserType::Owner => {
+                run_query!("SELECT * FROM lots
+                            JOIN reservations on lots.lot_id = reservations.lot_id
+                            where owner_id = $1;",
+                                  user.user_id).expect("oops")
+            },
+            user::UserType::Parker => {
+                run_query!("SELECT * FROM vehicles
+                            JOIN reservations on vehicles.vehicle_id = reservations.vehicle_id
+                            where driver_id = $1;",
+                                  user.user_id).expect("oops")
+            }
+        };
+
+
+        let mut v = vec![];
+        for row in res {
+            v.push(Reservation::parse(&row));
+        }
+        return v;
     }
 }

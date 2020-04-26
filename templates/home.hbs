@@ -171,6 +171,35 @@
 			{{/if}}
 
 
+			<div class="card">
+				<div class="card-body">
+					<h2>Active Reservations</h2>
+
+					<table class="table">
+						<thead>
+								<tr>
+									<th scope="col">Vehicle</th>
+									<th scope="col">Parking Lot</th>
+									<th scope="col">Start Time</th>
+									<th scope="col">End Time</th>
+									<th scope="col">Cost</th>
+								</tr>
+							</thead>
+							<tbody>
+								{{#each reservations}}
+									<td>{{this.vehicle.license_plate}} ({{this.vehicle.name}})</td>
+									<td>{{this.lot.name}} ({{this.lot.address}})</td>
+									<td>{{this.start_time}}</td>
+									<td>{{this.end_time}}</td>
+									<td>${{this.cost}}</td>
+								{{/each}}
+							</tbody>
+						</thead>
+					</table>
+				</div>
+			</div>
+
+
 		</div>
 	</body>
 
