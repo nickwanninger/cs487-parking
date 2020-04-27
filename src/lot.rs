@@ -66,6 +66,24 @@ impl Lot {
 
         // TODO: delete reservations
     }
+
+
+
+    pub fn all_lots() -> Vec<Lot> {
+        let res = run_query!("SELECT * FROM lots;").expect("failed to query for all lots");
+        let mut v = vec![];
+        for row in res {
+            v.push(Lot::parse(&row));
+        }
+        return v;
+    }
+
+
+    pub fn for_id(id: i32) -> Lot {
+        let res = run_query!("SELECT * FROM lots where lot_id = $1;", id).expect("failed to query for all lots");
+        Lot::parse(&res[0])
+    }
+
 }
 
 
@@ -119,8 +137,8 @@ impl Reservation {
 
     /// Add a reservation to the DB and return it
     pub fn create(
-        vehicle: &vehicle::Vehicle,
-        lot: &Lot,
+        vid: i32,
+        lid: i32,
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> db::Result<Reservation> {
@@ -128,7 +146,7 @@ impl Reservation {
                               (vehicle_id, lot_id, start_time, end_time)
                               VALUES ($1, $2, $3, $4)
                               RETURNING *;",
-                vehicle.vehicle_id, lot.lot_id, start, end)?;
+                vid, lid, start, end)?;
 
 
         Ok(Reservation::parse(&res[0]))

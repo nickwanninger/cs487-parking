@@ -108,13 +108,39 @@
 										</td>
 									</tr>
       					</form>
+
 							</tbody>
 						</table>
 				</div>
 			</div>
 
 
+			<div class="card">
+				<div class="card-body">
+					<h2>View Lot</h2>
 
+					<form class="card p-2" action="/viewlot" method="POST">
+						<div class="input-group">
+							<div class="input-group-append">
+
+
+								<select class="form-control" id="lot_select" name="lot" required>
+									<option value="" selected disabled hidden>Parking Lot</option>
+									{{#each all_lots}}
+									<option value="{{this.lot_id}}" x-price="{{this.price}}">{{this.name}} ({{this.address}}, ${{this.price}}/hr)</option>
+									{{/each}}
+								</select>
+
+								<input type="date" class="form-control" placeholder="Day" name="date" required>
+
+
+								<button type="submit" class="btn btn-secondary">View</button>
+							</div>
+						</div>
+					</form>
+
+				</div>
+			</div>
 
 
 			{{else}}
@@ -173,8 +199,68 @@
 
 			<div class="card">
 				<div class="card-body">
-					<h2>Active Reservations</h2>
 
+
+					{{#if owner}}
+						you are an owner
+					{{else}}
+						<h2>Create Reservation</h2>
+						<table class="table">
+							<thead>
+									<tr>
+										<th scope="col">Vehicle</th>
+										<th scope="col">Parking Lot</th>
+										<th scope="col">Start Time</th>
+										<th scope="col">Duration</th>
+										<th scope="col"></th>
+									</tr>
+								</thead>
+								<tbody>
+									<form class="card p-2" action="/reservation" method="POST">
+										<tr>
+											<td>
+												<select class="form-control" id="vehicle" name="vehicle" required>
+													<option value="" selected disabled hidden>Vehicle</option>
+													{{#each vehicles}}
+													<option value="{{this.vehicle_id}}">{{this.name}} ({{this.license_plate}})</option>
+													{{/each}}
+												</select>
+
+											</td>
+
+											<td>
+												<select class="form-control" id="lot_select" name="lot" required onchange="lot_changed(this)">
+													<option value="" selected disabled hidden>Parking Lot</option>
+													{{#each all_lots}}
+													<option value="{{this.lot_id}}" x-price="{{this.price}}">{{this.name}} ({{this.address}}, ${{this.price}}/hr)</option>
+													{{/each}}
+												</select>
+											</td>
+
+											<td>
+												<input type="datetime-local" class="form-control" placeholder="Start Time" name="start_time" required>
+											</td>
+
+
+											<td>
+												<input type="number" class="form-control" placeholder="Duration (hours)" name="hours" required onchange="duration_changed(this.value)">
+											</td>
+
+
+											<td>
+												<button style="min-width: 100px;" disabled type="submit" id="res_button" class="btn btn-primary">??</button>
+											</td>
+
+										</tr>
+									</form>
+								</tbody>
+							</thead>
+						</table>
+					{{/if}}
+
+
+
+					<h2>Current Reservations</h2>
 					<table class="table">
 						<thead>
 								<tr>
@@ -196,11 +282,6 @@
 									</tr>
 								{{/each}}
 
-								{{#if owner}}
-									you are an owner
-								{{else}}
-									you aren't an owner
-								{{/if}}
 							</tbody>
 						</thead>
 					</table>
@@ -210,6 +291,38 @@
 
 		</div>
 	</body>
+
+
+	<script>
+
+		// this is so bad I'm sorry. - nick
+		const prices = {};
+		{{#each all_lots}}
+			prices[{{this.lot_id}}] = {{this.price}};
+		{{/each}}
+
+		var current_price = undefined;
+		var current_d = undefined;
+
+		function update() {
+			if (current_price == undefined) return;
+			if (current_d == undefined) return;
+
+			var button = document.querySelector("#res_button");
+			button.innerHTML = "$" + (current_d * current_price);
+			button.disabled = false;
+		}
+
+		function lot_changed(x) {
+			current_price = prices[x.value];
+			update();
+		}
+
+		function duration_changed(d) {
+			current_d = d;
+			update();
+		}
+	</script>
 
 </html>
 
