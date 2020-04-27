@@ -263,13 +263,9 @@ fn get_view_lot(_user: user::User, id: i32, date: String) -> Template {
 
     let lot = lot::Lot::for_id(id);
 
-
-    // I realize I have a sql injection bug here, but I don't care.
-    // This project has gone on long enough. - nick
-    let res = run_query!(
-        format!("select * from reservations where lot_id = $1 and (
-            DATE(start_time) = '{}' or DATE(end_time) = '{}')", date, date).as_str(),
-        id).expect("not sure why it failed");
+    // time zones are hard
+    let date_obj = chrono::NaiveDate::parse_from_str(date.as_str(), "%Y-%m-%d").unwrap();
+    let res = run_query!("select * from reservations where lot_id = $1 and (DATE(start_time) = $2 or DATE(end_time) = $2)", id, date_obj).expect("db query failed");
 
     // parse all the reservations with some fancy functional programming crap.
     let resvs: Vec<lot::Reservation> = res.into_iter().map(|row| lot::Reservation::parse(&row)).collect();
